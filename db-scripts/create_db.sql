@@ -33,11 +33,6 @@ CREATE TABLE IF NOT EXISTS db.tb_fornecedor (
     nome VARCHAR(100) NOT NULL,
     cnpj VARCHAR(14) UNIQUE NOT NULL CHECK (length(cnpj) = 14)
 );
-
-CREATE TABLE IF NOT EXISTS db.tb_nota (
-    id_nota SERIAL PRIMARY KEY,
-    nota INTEGER NOT NULL CHECK (nota >= 0 AND nota <= 5)
-);
 -- ===============|Tabelas com Relacionamento|==================
 CREATE TABLE IF NOT EXISTS db.tb_enderecos (
     id_endereco SERIAL PRIMARY KEY,
@@ -47,7 +42,7 @@ CREATE TABLE IF NOT EXISTS db.tb_enderecos (
     complemento VARCHAR(100),
     estado VARCHAR(2) NOT NULL,
     municipio VARCHAR(100) NOT NULL,
-    id_endereco_cobranca INTEGER,
+    flag_endereco_cobranca BOOLEAN NOT NULL DEFAULT TRUE,
 
     CONSTRAINT fk_endereco_cobranca
         FOREIGN KEY (id_endereco_cobranca)
@@ -104,12 +99,16 @@ CREATE TABLE IF NOT EXISTS db.tb_pedidos (
     valor_total NUMERIC(10,2) NOT NULL CHECK (valor_total >= 0),
     id_cliente INTEGER NOT NULL,
     id_status INTEGER NOT NULL,
+    id_endereco INTEGER NOT NULL,
 
     CONSTRAINT fk_pedido_cliente FOREIGN KEY (id_cliente)
         REFERENCES db.tb_clientes(id_cliente),
 
     CONSTRAINT fk_pedido_status FOREIGN KEY (id_status)
         REFERENCES db.tb_status_pedidos(id_status)
+    
+    CONSTRAINT fk_pedido_endereco FOREIGN KEY (id_endereco)
+        REFERENCES db.tb_enderecos(id_endereco)
 );
 
 
@@ -133,11 +132,8 @@ CREATE TABLE IF NOT EXISTS db.tb_avaliacao_produto (
     id_avaliacao SERIAL PRIMARY KEY,
     comentario VARCHAR(500),
     id_pedido INTEGER UNIQUE NOT NULL,
-    id_nota INTEGER NOT NULL,
+    nota INTEGER NOT NULL,
 
     CONSTRAINT fk_avaliacao_pedido FOREIGN KEY (id_pedido)
-        REFERENCES db.tb_pedidos(id_pedido),
-
-    CONSTRAINT fk_avaliacao_nota FOREIGN KEY (id_nota)
-        REFERENCES db.tb_nota(id_nota)
+        REFERENCES db.tb_pedidos(id_pedido)
 );
