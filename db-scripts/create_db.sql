@@ -2,7 +2,7 @@
 DROP SCHEMA IF EXISTS db CASCADE;
 CREATE SCHEMA db;
 
--- ================|Tabelas Sem Relacionamento|==================
+-- ================|Tabelas independentes (sem FK)|==================
 CREATE TABLE db.tb_categoria (
     id_categoria SERIAL PRIMARY KEY,
     des_categoria VARCHAR(50) NOT NULL UNIQUE
@@ -30,22 +30,23 @@ CREATE TABLE db.tb_fornecedor (
 CREATE TABLE db.tb_promocao (
     id_promocao SERIAL PRIMARY KEY,
     des_nome VARCHAR(100) NOT NULL,
-    tp_desconto NUMERIC(5,2),
+    tp_desconto VARCHAR(20) CHECK (tp_desconto IN ('percentual', 'fixo')),
     vlr_desconto NUMERIC(10,2),
-    dt_inicio DATE NOT NULL,
+    dt_inicio DATE DEFAULT CURRENT_DATE,
     dt_fim DATE NOT NULL
 );
 
--- ================|Tabelas com Relacionamento|==================
 CREATE TABLE db.tb_clientes (
     id_cliente SERIAL PRIMARY KEY,
     num_cpf VARCHAR(11) UNIQUE NOT NULL CHECK (length(num_cpf) = 11),
     des_nome VARCHAR(100) NOT NULL,
-    dt_nascimento DATE,
+    dt_nascimento DATE NOT NULL,
     des_email VARCHAR(100) UNIQUE NOT NULL,
     num_telefone VARCHAR(20) NOT NULL,
-    dt_cadastro DATE NOT NULL
+    dt_cadastro DATE DEFAULT CURRENT_DATE
 );
+
+-- ================|Tabelas dependentes simples (1:N)|==================
 
 CREATE TABLE db.tb_enderecos (
     id_endereco SERIAL PRIMARY KEY,
@@ -75,25 +76,40 @@ CREATE TABLE db.tb_produtos (
         REFERENCES db.tb_categoria(id_categoria)
 );
 
-CREATE TABLE db.tb_produto_fornecedor (
-    id_produto INTEGER NOT NULL,
-    id_fornecedor INTEGER NOT NULL,
+CREATE TABLE db.tb_customizacao_valor (
+    id_customizacao_valor SERIAL PRIMARY KEY,
+    id_tipo_customizacao INTEGER NOT NULL,
+    des_customizacao VARCHAR(100) NOT NULL,
+    vlr_adicional NUMERIC(10,2) DEFAULT 0,
 
-    PRIMARY KEY (id_produto, id_fornecedor),
-
-    CONSTRAINT fk_pf_produto
-        FOREIGN KEY (id_produto)
-        REFERENCES db.tb_produtos(id_produto),
-
-    CONSTRAINT fk_pf_fornecedor
-        FOREIGN KEY (id_fornecedor)
-        REFERENCES db.tb_fornecedor(id_fornecedor)
+    CONSTRAINT fk_tipo_customizacao
+        FOREIGN KEY (id_tipo_customizacao)
+        REFERENCES db.tb_tipo_customizacao(id_tipo_customizacao)
 );
+
+CREATE TABLE db.tb_avaliacao_produto (
+    id_avaliacao SERIAL PRIMARY KEY,
+    id_cliente INTEGER NOT NULL,
+    id_produto  INTEGER NOT NULL,
+    dt_avaliacao DATE DEFAULT CURRENT_DATE,
+    des_comentario VARCHAR(500),
+    des_nota INTEGER NOT NULL CHECK (des_nota BETWEEN 1 AND 5),
+
+    CONSTRAINT fk_avaliacao_cliente
+        FOREIGN KEY (id_cliente)
+        REFERENCES db.tb_clientes(id_cliente),
+
+    CONSTRAINT fk_avaliacao_produto
+        FOREIGN KEY (id_produto)
+        REFERENCES db.tb_produtos(id_produto)
+);
+
+-- ================|Tabelas principais de processo|==================
 
 CREATE TABLE db.tb_pedidos (
     id_pedido SERIAL PRIMARY KEY,
     id_cliente INTEGER NOT NULL,
-    dt_pedido DATE NOT NULL,
+    dt_pedido DATE DEFAULT CURRENT_DATE,
     des_status VARCHAR(50) NOT NULL,
     id_entrega_endereco INTEGER NOT NULL,
     id_cobranca_endereco INTEGER NOT NULL,
@@ -128,12 +144,14 @@ CREATE TABLE db.tb_itens_pedido (
         REFERENCES db.tb_produtos(id_produto)
 );
 
+-- ================|Tabelas dependentes (1:1)|==================
+
 CREATE TABLE db.tb_envio (
     id_envio SERIAL PRIMARY KEY,
     id_pedido INTEGER UNIQUE NOT NULL,
     cod_rastreio VARCHAR(50) UNIQUE NOT NULL,
     des_status_envio VARCHAR(20) NOT NULL,
-    dt_envio DATE NOT NULL,
+    dt_envio DATE DEFAULT CURRENT_DATE,
 
     CONSTRAINT fk_envio_pedido
         FOREIGN KEY (id_pedido)
@@ -152,28 +170,21 @@ CREATE TABLE db.tb_pagamento (
         REFERENCES db.tb_pedidos(id_pedido)
 );
 
-CREATE TABLE db.tb_avaliacao_produto (
-    id_avaliacao SERIAL PRIMARY KEY,
-    id_cliente INTEGER NOT NULL,
-    dt_avaliacao DATE NOT NULL,
-    des_comentario VARCHAR(500),
-    id_pedido INTEGER UNIQUE NOT NULL,
-    des_nota INTEGER NOT NULL,
+-- ================|Tabelas assossiativas (N:M)|==================
 
-    CONSTRAINT fk_avaliacao_pedido
-        FOREIGN KEY (id_pedido)
-        REFERENCES db.tb_pedidos(id_pedido)
-);
+CREATE TABLE db.tb_produto_fornecedor (
+    id_produto INTEGER NOT NULL,
+    id_fornecedor INTEGER NOT NULL,
 
-CREATE TABLE db.tb_customizacao_valor (
-    id_customizacao_valor SERIAL PRIMARY KEY,
-    id_tipo_customizacao INTEGER NOT NULL,
-    des_customizacao VARCHAR(100) NOT NULL,
-    vlr_adicional NUMERIC(10,2) DEFAULT 0,
+    PRIMARY KEY (id_produto, id_fornecedor),
 
-    CONSTRAINT fk_customizacao_tipo
-        FOREIGN KEY (id_tipo_customizacao)
-        REFERENCES db.tb_tipo_customizacao(id_tipo_customizacao)
+    CONSTRAINT fk_pf_produto
+        FOREIGN KEY (id_produto)
+        REFERENCES db.tb_produtos(id_produto),
+
+    CONSTRAINT fk_pf_fornecedor
+        FOREIGN KEY (id_fornecedor)
+        REFERENCES db.tb_fornecedor(id_fornecedor)
 );
 
 CREATE TABLE db.tb_item_customizacao (
