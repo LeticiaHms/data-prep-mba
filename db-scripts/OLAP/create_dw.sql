@@ -1,22 +1,36 @@
 -- =========================|Schemas|============================
+-- garantir que data seja imutavel, criando um schema temporario
+CREATE SCHEMA IF NOT EXISTS tmp
+-- move ela pro temp
+ALTER TABLE dw.dim_data SET SCHEMA tmp;
+-- dropa o schema
 DROP SCHEMA IF EXISTS dw CASCADE;
+-- recriar
 CREATE SCHEMA dw;
+- move de volta a dim_data
+ALTER TABLE tmp.dim_data SET SCHEMA dw;
+-- dropa schema temporario
+DROP SCHEMA IF EXISTS tmp;
+
 -- ================|Tabelas Dimensionais|========================
 -- SCD Tipo 0 — Imutável
 CREATE TABLE dw.dim_data (
     sk_data INTEGER PRIMARY KEY,
-    data_completa DATE NOT NULL UNIQUE,
-    dia INTEGER,
-    mes INTEGER,
-    ano INTEGER,
-    trimestre INTEGER,
+    data_completa DATE NOT NULL,
+    dia INTEGER NOT NULL,
+    mes INTEGER NOT NULL,
+    ano INTEGER NOT NULL,
+    trimestre INTEGER NOT NULL,
+    semestre INT NOT NULL,
     nome_mes VARCHAR(20),
-    dia_semana VARCHAR(20)
+    dia_semana VARCHAR(20),
+    final_semana BOOLEAN
 );
 
 -- SCD Tipo 2 — Histórico
 CREATE TABLE dw.dim_cliente (
     sk_cliente SERIAL PRIMARY KEY,
+    chave_hash TEXT,
     id_cliente INTEGER,
     nome_cliente VARCHAR(100),
     cpf VARCHAR(11),
@@ -34,6 +48,7 @@ CREATE TABLE dw.dim_cliente (
 CREATE TABLE dw.dim_produto (
     sk_produto SERIAL PRIMARY KEY,
     id_produto INTEGER,
+    chave_hash TEXT,
     nome_produto VARCHAR(100),
     descricao_produto VARCHAR(100),
     categoria VARCHAR(50),
@@ -55,11 +70,13 @@ CREATE TABLE dw.dim_promocao (
     data_fim DATE
 );
 
+-- SCD Tipo 1 — Sobrescrita
 CREATE TABLE dw.dim_pagamento (
     sk_pagamento SERIAL PRIMARY KEY,
     tipo_pagamento VARCHAR(50)
 );
 
+-- SCD Tipo 1 — Sobrescrita
 CREATE TABLE dw.dim_status_pedido (
     sk_status SERIAL PRIMARY KEY,
     status_pedido VARCHAR(50)

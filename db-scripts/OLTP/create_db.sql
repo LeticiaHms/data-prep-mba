@@ -1,7 +1,6 @@
 -- =========================|Schemas|============================
 DROP SCHEMA IF EXISTS db CASCADE;
 CREATE SCHEMA db;
-
 -- ================|Tabelas independentes (sem FK)|==================
 CREATE TABLE db.tb_categoria (
     id_categoria SERIAL PRIMARY KEY,
